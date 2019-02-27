@@ -15,7 +15,6 @@ public class PlayerController : ObjectController
     protected new BoxCollider2D collider;
     protected Collision surfaceCollsions;
 
-    // COPIED FROM OLD
     [SerializeField] float jumpHeight = 4;
     [SerializeField] float timeToJumpApex = 0.4f;
     [SerializeField] float jumpCooldown = 0.3f; // just less than timeToJumpApex
@@ -33,13 +32,13 @@ public class PlayerController : ObjectController
 
     [SerializeField] bool ducking = false;
     [SerializeField] float crawlSpeed = .05f;
+    [SerializeField] protected float speed = 10;
 
     [SerializeField] float climbSpeed = 0.1f;
 
     float velocityXSmoothing;
     float gravity;
     float jumpVelocity;
-    // END COPY
 
     [Serializable] struct Abilities
     {

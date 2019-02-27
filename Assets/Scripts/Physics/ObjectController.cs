@@ -4,21 +4,11 @@ using UnityEngine;
 
 public abstract class ObjectController : MonoBehaviour
 {
-    // Physical state of object
-    [SerializeField] protected float GRAVITY = 10; // TBD
-    //[SerializeField] protected bool grounded; // etc -- TODO how to describe obj state?
-    [SerializeField] protected float speed = 10; // for running etc.
-
-    //[SerializeField] protected Vector3 velocity;
-
-    //protected Collision collision;
-
-    // Update is called once per frame
+    // Classes implementing ObjectController can call base.Update()
+    // to use this per-frame update sequence
     protected virtual void Update()
     {
-        GetState(); // ? is this needed?
-        // It might be needed to handle things like dead character
-        // TODO having issue with checking state from previous frame, so setting state at the end of moving/colliding
+        GetState();
         GetInput();
         PerformAction();
         SetVelocity();
@@ -26,10 +16,10 @@ public abstract class ObjectController : MonoBehaviour
         Move();
     }
 
-    protected virtual void GetState() { }
-    protected virtual void GetInput() { }
-    protected virtual void PerformAction() { }
-    protected virtual void SetVelocity() { } // Will hem in velocity if collision
-    protected virtual void HandleCollisions() { }
-    protected virtual void Move() { }
+    protected abstract void GetState();
+    protected abstract void GetInput();
+    protected abstract void PerformAction();
+    protected abstract void SetVelocity();
+    protected abstract void HandleCollisions();
+    protected abstract void Move();
 }
