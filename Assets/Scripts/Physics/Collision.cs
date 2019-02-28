@@ -12,6 +12,10 @@ public class Collision : MonoBehaviour
 
     // Other hidden fields below
 
+    // TODO include multiple collision masks
+    // How to handle different behavior with each?
+    // Struct with LayerMask and "constrainMovement" bool?
+    // Then other options can just be added to the struct (like, notify collider)
     public LayerMask collisionMask;
 
     // Thinking ahead, if we have pixel art, if the skin width is small enough
@@ -38,6 +42,16 @@ public class Collision : MonoBehaviour
     }
 
     // A candidate movement vector is given to this function to detect Collisions
+
+    // TODO create a flag for detect collisions that "Constrains velocity"
+    // so, when this is true, we actually stop the object from moving because it hit something
+
+        // Thinking ahead, I should revise this code so that two moving objects don't fly past each other.
+        // Would assuming that each object does it's complete update before the next object ensure this
+        // automatically? Obj1 would literally move before obj2 checked for collisions....?
+
+        // Also moving platforms? Getting pushed by objects?
+
     public CollisionInfo DetectCollisions(ref Vector3 velocity)
     {
         Collisions.Reset();
@@ -51,13 +65,10 @@ public class Collision : MonoBehaviour
         return Collisions;
     }
 
+    // Can Horz/Vert code be merged into a single function, or at least part of it
+    // lots of code copy right now
     void DetectHorizontalCollisions(ref Vector3 velocity)
     {
-        // Detect collisions in all directions
-        // Either skin width or movement length
-
-        // TODO direct skinwidth min in all directions
-
         for (int directionX = -1; directionX <= 1; directionX += 2)
         {
             float moveVelocity = (Mathf.Sign(velocity.x) == directionX) ? Mathf.Abs(velocity.x) : 0;
@@ -65,7 +76,6 @@ public class Collision : MonoBehaviour
             for (int i = 0; i < horizontalRayCount; i++)
             {
                 Vector2 rayOrigin = (directionX == -1) ? raycastOrigins.bottomLeft : raycastOrigins.bottomRight;
-                //rayOrigin.x += skinWidth * ((directionX == -1) ? 1 : -1);
                 rayOrigin += Vector2.up * (horizontalRaySpacing * i);
 
                 RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * directionX, rayLength, collisionMask);
@@ -78,61 +88,6 @@ public class Collision : MonoBehaviour
                     {
                         velocity.x = (hit.distance - skinWidth) * directionX;
                         rayLength = hit.distance;
-
-                        //Vector3 oldVel = velocity;
-
-                        //// DEBUG
-                        //Vector3 point = new Vector3(rayOrigin.x, rayOrigin.y, 0) + velocity;
-
-                        //if (GameObject.Find("Surface").GetComponent<BoxCollider2D>().bounds.Contains(point))
-                        //{
-                        //    Vector2 mover = new Vector2(rayOrigin.x, (rayOrigin.y + 0.25f));
-
-                        //    Debug.DrawRay(rayOrigin, Vector2.right * directionX * rayLength, Color.red);
-
-                        //    Debug.DrawRay(mover, Vector2.right * directionX * (hit.distance - skinWidth), Color.green);
-                        //    Debug.Log("Point in Surface");
-
-                        //    // printouts
-                        //    Debug.Log("rayOrigin             = (" + rayOrigin.x + ", " + rayOrigin.y + ")");
-                        //    // manually calc.
-                        //    Debug.Log("Proper ray origin     = (" + (gameObject.transform.position.x + 0.5 - skinWidth) + ", " + (gameObject.transform.position.y - 0.5 - skinWidth) + ")");
-
-                        //    Debug.Log("Velocity.x (original) = " + velocity.x);
-                        //    Debug.Log("Velocity.x (updated)  = " + (hit.distance - skinWidth) * directionX);
-                        //    Debug.Log("hit.distance          = " + hit.distance);
-                        //    Debug.Log("hit.distance - skinWidth = " + (hit.distance - skinWidth));
-                        //    Debug.Log("directionX            = " + directionX);
-                        //    Debug.Break();
-                        //}
-                        ////else
-                        ////Debug.Log("Point not in Surface");
-                        //for (int p = 1; p < 4; p++)
-                        //{
-                        //    if (GameObject.Find("Surface (" + p + ")").GetComponent<BoxCollider2D>().bounds.Contains(point))
-                        //    {
-                        //        Debug.DrawRay(rayOrigin, Vector2.right * directionX * rayLength, Color.red);
-
-                        //        Vector2 mover = new Vector2(rayOrigin.x, (rayOrigin.y + 0.25f));
-
-                        //        Debug.DrawRay(mover, Vector2.right * directionX * (hit.distance - skinWidth), Color.green);
-                        //        Debug.Log("Point in Surface" + p);
-
-                        //        // printouts
-                        //        Debug.Log("rayOrigin             = (" + rayOrigin.x + ", " + rayOrigin.y + ")");
-                        //        // manually calc.
-                        //        Debug.Log("Proper ray origin     = (" + (gameObject.transform.position.x + 0.5 - skinWidth) + ", " + (gameObject.transform.position.y - 0.5 - skinWidth) + ")");
-
-                        //        Debug.Log("Velocity.x (original) = " + velocity.x);
-                        //        Debug.Log("Velocity.x (updated)  = " + (hit.distance - skinWidth) * directionX);
-                        //        Debug.Log("hit.distance          = " + hit.distance);
-                        //        Debug.Log("hit.distance - skinWidth = " + (hit.distance - skinWidth));
-                        //        Debug.Log("directionX            = " + directionX);
-                        //        Debug.Break();
-                        //    }
-                        //    //else
-                        //    //Debug.Log("Point not in Surface" + p);
-                        //}
                     }
 
                     Collisions.left  |= directionX == -1;
@@ -153,8 +108,6 @@ public class Collision : MonoBehaviour
             for (int i = 0; i < verticalRayCount; i++)
             {
                 Vector2 rayOrigin = (directionY == -1) ? raycastOrigins.bottomLeft : raycastOrigins.topLeft;
-                // subract skin width so ray is cast from within 
-                //rayOrigin.y += skinWidth * ((directionY == -1) ? 1 : -1);
                 rayOrigin += Vector2.right * (verticalRaySpacing * i + velocity.x);
 
                 RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up * directionY, rayLength, collisionMask);
@@ -171,10 +124,6 @@ public class Collision : MonoBehaviour
 
                     Collisions.below |= directionY == -1;
                     Collisions.above |= directionY == 1;
-                }
-                else
-                {
-                    //Debug.Log("No hit");
                 }
             }
         }
@@ -196,10 +145,9 @@ public class Collision : MonoBehaviour
         raycastOrigins.bottomRight = new Vector2(bounds.max.x, bounds.min.y);
         raycastOrigins.topLeft = new Vector2(bounds.min.x, bounds.max.y);
         raycastOrigins.topRight = new Vector2(bounds.max.x, bounds.max.y);
-
-        //Debug.Log(raycastOrigins);
     }
 
+    // TODO merge this into UpdateRaycastOrigins
     protected void CalculateRaySpacing()
     {
         Bounds bounds = collider2d.bounds;
