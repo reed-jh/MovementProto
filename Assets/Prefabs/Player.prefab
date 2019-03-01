@@ -98,6 +98,7 @@ MonoBehaviour:
     velocity: {x: 0, y: 0, z: 0}
     facing: 0
     ducking: 0
+    dodging: 0
   abilities:
     jump: 0
     dodge: 0
@@ -127,8 +128,8 @@ MonoBehaviour:
       accelerationTimeCrawl: 0
       accelerationTimeSlide: 0.5
     dodge:
-      dodgeVelocityX: 1
-      dodgeVelocityY: 0.05
+      dodgeDistance: 3
+      dodgeTime: 0.075
       dodgeCooldown: 1
 --- !u!61 &1266000550960818934
 BoxCollider2D:

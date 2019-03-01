@@ -29,7 +29,7 @@ public class PlayerController : ObjectController
      *  - AbilityAqcuired (can the player double jump)
      *  - AbilityPermitted (player has only jumped once and is airborne)
      *  - AbilityInput (player has pressed the spacebar)    
-     * And a PerformAbility() function that executes the ability, taking in the PlayerState struct and Abilities list
+     * And a PerformAbility() function that executes the ability, taking in the PlayerState struct, Inputs, Collisions, and Abilities list
      * This way we can clean up this controller function by just looping through all abilities and doing their checks    
      */   
 
@@ -72,7 +72,6 @@ public class PlayerController : ObjectController
 
     protected override void GetInput()
     {
-        //return;
         // All this method does is get what buttons are being pressed.
         // We don't know what to do with that without knowing state/collisions
         inputs.clear();
@@ -161,7 +160,11 @@ public class PlayerController : ObjectController
         // in order to detect floor collisions
         else
         {
-            state.velocity.y += GRAVITY * Time.deltaTime;
+            if (!state.dodging) // will not fall while dodging
+            {
+                state.velocity.y += GRAVITY * Time.deltaTime;
+            }
+
             if (inputs.run != 0)
             {
                 state.facing = (inputs.run == 1) ? true : false;
@@ -186,8 +189,14 @@ public class PlayerController : ObjectController
                 //  Also could have set accel to 0
 
                 // TODO this overwrites dodge velocity, so I'm inelegantly patching that
-                if (!inputs.dodge)
+                if (!state.dodging)
+                {
                     state.velocity.x = inputs.run * param.speed.runSpeed;
+                }
+                else
+                {
+                    Debug.Log("Dodging " + state.velocity.x);
+                }
             }
             else // airborne
             {
@@ -214,9 +223,14 @@ public class PlayerController : ObjectController
 
     private IEnumerator DoDodge()
     {
+        state.dodging = true;
         abilities.dodge = false;
-        state.velocity.y += param.dodge.dodgeVelocityY;
-        state.velocity.x = param.dodge.dodgeVelocityX * (state.facing ? 1 : -1);
+        for (float dodgingSpan = 0f; dodgingSpan < param.dodge.dodgeTime; dodgingSpan += Time.deltaTime)
+        {
+            state.velocity.x = param.dodge.dodgeDistance * (state.facing ? 1 : -1) * Time.deltaTime / param.dodge.dodgeTime;
+            yield return null;
+        }
+        state.dodging = false;
         yield return new WaitForSeconds(param.dodge.dodgeCooldown);
         abilities.dodge = true;
     }
@@ -257,6 +271,7 @@ public class PlayerController : ObjectController
         // TODO I probably want to extend this to include up/down as well
         public bool facing; //false = left, true = right
         public bool ducking;
+        public bool dodging;
     }
 
     // Struct to handle inputs
@@ -344,8 +359,8 @@ public class PlayerController : ObjectController
         [Serializable]
         public struct DodgeParameters
         {
-            public float dodgeVelocityX;
-            public float dodgeVelocityY;
+            public float dodgeDistance;
+            public float dodgeTime;
             public float dodgeCooldown;
         }
     }

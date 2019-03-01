@@ -909,11 +909,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7692281169672656251, guid: 404a9ee37f49c44f28cc8a9c9a53185e,
-        type: 3}
-      propertyPath: param.dodge.dodgeVelocityX
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 404a9ee37f49c44f28cc8a9c9a53185e, type: 3}
 --- !u!1001 &7390119253893594679
