@@ -4,6 +4,9 @@ using UnityEngine;
 
 public abstract class ObjectController : MonoBehaviour
 {
+    // Universal Parameters
+    protected const float GRAVITY = -0.5f;
+
     // Classes implementing ObjectController can call base.Update()
     // to use this per-frame update sequence
     protected virtual void Update()

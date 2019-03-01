@@ -52,17 +52,19 @@ public class Collision : MonoBehaviour
 
         // Also moving platforms? Getting pushed by objects?
 
-    public CollisionInfo DetectCollisions(ref Vector3 velocity)
+    public void DetectCollisions(ref Vector3 velocity)
     {
         Collisions.Reset();
         UpdateRaycastOrigins();
         CalculateRaySpacing();
         // TODO don't check if not moving on axis?
 
+        // TODO shouldn't the rays shoot diagonally since you don't move x then y, but both together?
+        // But how would I do that with the opposite side of the player?.....
+
         // TODO actually, I think I need to check all axes on all frames, but some just check if something is touching (within skin)
         DetectHorizontalCollisions(ref velocity);
         DetectVerticalCollisions(ref velocity);
-        return Collisions;
     }
 
     // Can Horz/Vert code be merged into a single function, or at least part of it

@@ -10,65 +10,34 @@ public class PlayerController : ObjectController
 {
     // Player specific states/attributes
 
-    protected Inputs inputs;
-
     protected new BoxCollider2D collider;
     protected Collision surfaceCollsions;
 
-    [SerializeField] float jumpHeight = 4;
-    [SerializeField] float timeToJumpApex = 0.4f;
-    [SerializeField] float jumpCooldown = 0.3f; // just less than timeToJumpApex
-
-    [SerializeField] float accelerationTimeAirborne = .2f;
-    [SerializeField] float accelerationTimeGrounded = .1f;
-    [SerializeField] float accelerationTimeCrawl    = .2f;
-    [SerializeField] float accelerationTimeSlide    = .5f;
-
-    [SerializeField] protected Vector3 velocity;
-
-    [SerializeField] bool facing = true; //false = left, true = right
-    [SerializeField] float dodgeVelocity = 3;
-    [SerializeField] float dodgeCooldown = 1;
-
-    [SerializeField] bool ducking = false;
-    [SerializeField] float crawlSpeed = .05f;
-    [SerializeField] protected float speed = 10;
-
-    [SerializeField] float climbSpeed = 0.1f;
-
     float velocityXSmoothing;
-    float gravity;
-    float jumpVelocity;
 
-    [Serializable] struct Abilities
-    {
-        public bool jump;
-        public bool dodge;
-        public bool duck;
-        public bool grab;
-        public void ActivateAll()
-        {
-            jump = true;
-            dodge = true;
-            duck = true;
-            grab = true;
-        }
-        public void DeactivateAll()
-        {
-            jump = false;
-            dodge = false;
-            duck = false;
-            grab = false;
-        }
-    }
-    [SerializeField] Abilities abilities;
+    [SerializeField] PlayerControllerState state;
+    [SerializeField] PlayerControllerAbilities abilities;
+    [SerializeField] PlayerControllerInputs inputs;
+    [SerializeField] PlayerControllerParameters param;
 
+    /*
+     * TODO possible design update:
+     * 
+     * Each ability (e.g. jump, duck, dodge)
+     * has its own class inherited from PlayerAbility
+     * Each PlayerAbility has checks for
+     *  - AbilityAqcuired (can the player double jump)
+     *  - AbilityPermitted (player has only jumped once and is airborne)
+     *  - AbilityInput (player has pressed the spacebar)    
+     * And a PerformAbility() function that executes the ability, taking in the PlayerState struct and Abilities list
+     * This way we can clean up this controller function by just looping through all abilities and doing their checks    
+     */   
 
     // Start is called before the first frame update
     void Start()
     {
         abilities.ActivateAll();
-        velocity = new Vector3();
+        state.velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
         // Check if init successful
@@ -76,14 +45,6 @@ public class PlayerController : ObjectController
         {
             Debug.Log("Failed initialization: " + gameObject.name);
         }
-
-
-        // COPIED FROM OLD
-        gravity = -(2 * jumpHeight / Mathf.Pow(timeToJumpApex, 2));
-        jumpVelocity = Mathf.Abs(gravity) * timeToJumpApex;
-        //Debug.Log("Gravity: " + gravity);
-        //Debug.Log("Jump Velocity: " + jumpVelocity);
-        // END COPY
     }
 
     // Update is called once per frame
@@ -116,11 +77,14 @@ public class PlayerController : ObjectController
         // We don't know what to do with that without knowing state/collisions
         inputs.clear();
         // TODO does keydown + keyup make sense for all these? How is this normally handled?
-        //inputs.run      = Input.GetAxisRaw("Horizontal");
-        inputs.duck       = Input.GetKey(KeyCode.S);
-        inputs.jump       = Input.GetButtonDown("Jump") || Input.GetButtonUp("Jump");
-        inputs.dodge      = Input.GetKeyDown(KeyCode.L) || Input.GetKeyUp(KeyCode.L);
-        //inputs.attack   = Input.GetKeyDown(KeyCode.J) || Input.GetKeyUp(KeyCode.J);
+        // replace run with left/right
+        // replace duck with "down"
+        inputs.run      = Input.GetAxisRaw("Horizontal");
+        inputs.duck     = Input.GetKey(KeyCode.S);
+        inputs.up       = Input.GetKey(KeyCode.W);
+        inputs.jump     = Input.GetButtonDown("Jump") || Input.GetButtonUp("Jump");
+        inputs.dodge    = Input.GetKeyDown(KeyCode.L) || Input.GetKeyUp(KeyCode.L);
+        //inputs.attack = Input.GetKeyDown(KeyCode.J) || Input.GetKeyUp(KeyCode.J);
         inputs.grab     = Input.GetKey(KeyCode.K);
 
         //inputs.pause = Input.GetKey(KeyCode.P);
@@ -128,7 +92,7 @@ public class PlayerController : ObjectController
 
     protected override void PerformAction()
     {
-        if (inputs.duck && surfaceCollsions.Collisions.below && !ducking)
+        if (inputs.duck && surfaceCollsions.Collisions.below && !state.ducking)
         {
             IEnumerator coroutine = DoDuck();
             StartCoroutine(coroutine);
@@ -137,29 +101,25 @@ public class PlayerController : ObjectController
 
     private IEnumerator DoDuck()
     {
-        //Debug.Log("Ducking");
-        ducking = true;
+        state.ducking = true;
         gameObject.transform.Translate(new Vector3(0, -collider.bounds.size.y / 4, 0));
         gameObject.transform.localScale -= new Vector3(0, collider.bounds.size.y / 2, 0);
         while (inputs.duck && abilities.duck)
         {
             yield return null;
         }
-        //Debug.Log(inputs.duck);
-        //Debug.Log(abilities.duck);
         gameObject.transform.localScale += new Vector3(0, collider.bounds.size.y, 0);
         gameObject.transform.Translate(new Vector3(0, collider.bounds.size.y / 4, 0));
-        ducking = false;
+        state.ducking = false;
     }
 
     protected override void SetVelocity()
     {
-        float run = 0f;
+        // TODO replace with inputs.
 
         // jump
         if (abilities.jump && (inputs.jump))
         {
-            //Debug.Log("Jumping");
             IEnumerator coroutine = DoJump();
             StartCoroutine(coroutine);
         }
@@ -176,76 +136,88 @@ public class PlayerController : ObjectController
         {
             //Climb up
             // TODO add smoothdamp to climbing?
-            if (Input.GetKey(KeyCode.W))
+            // maybe remove smoothdamp from running
+            if (inputs.up)
             {
-                velocity.y = climbSpeed;
+                state.velocity.y = param.speed.climbSpeed;
             }
-            else if (Input.GetKey(KeyCode.S))
+            else if (inputs.duck)
             {
-                velocity.y = -climbSpeed;
+                state.velocity.y = -param.speed.climbSpeed;
             }
             else
             {
-                velocity.y = 0;
+                state.velocity.y = 0;
             }
             // If jump while clinging: leap off wall
-            if (Input.GetKey(KeyCode.Space))
+            if (inputs.jump)
             {
-                velocity.y = jumpVelocity * 0.5f;
+                state.velocity.y = param.jump.jumpVelocity * 0.5f;
                 float jumpDirection = (surfaceCollsions.Collisions.left) ? 1 : -1;
-                velocity.x = jumpVelocity * jumpDirection;
+                state.velocity.x = param.jump.jumpVelocity * jumpDirection;
             }
         }
         // If we were on the ground last frame, we still want to set downward velocity
         // in order to detect floor collisions
         else
         {
-            velocity.y += gravity * Time.deltaTime;
-            run = Input.GetAxisRaw("Horizontal");
-            if (run != 0)
+            state.velocity.y += GRAVITY * Time.deltaTime;
+            if (inputs.run != 0)
             {
-                facing = (run == 1) ? true : false;
+                state.facing = (inputs.run == 1) ? true : false;
             }
             //Debug.Log("Run: " + run);
         }
 
-        if (ducking)
+        if (state.ducking)
         {
             // sliding possible if running faster than crawl speed
             // sliding has much slower deceleration
-            float targetVelocityX = run * crawlSpeed;
-            velocity.x = Mathf.SmoothDamp(velocity.x, targetVelocityX, ref velocityXSmoothing,
-                                          (Mathf.Abs(velocity.x) > Mathf.Abs(targetVelocityX)) ? accelerationTimeSlide : accelerationTimeCrawl);
-            //Debug.Log("Target Velocity: " + targetVelocityX);
-            //Debug.Log("velocity.x: " + velocity.x);
-            //Debug.Break();
+            float targetVelocityX = inputs.run * param.speed.crawlSpeed;
+            state.velocity.x = Mathf.SmoothDamp(state.velocity.x, targetVelocityX, ref velocityXSmoothing,
+                                          (Mathf.Abs(state.velocity.x) > Mathf.Abs(targetVelocityX)) ? param.accel.accelerationTimeSlide : param.accel.accelerationTimeCrawl);
         }
         else // running
         {
-            float targetVelocityX = run * speed;
-            velocity.x = Mathf.SmoothDamp(velocity.x, targetVelocityX, ref velocityXSmoothing,
-                                          (surfaceCollsions.Collisions.below ? accelerationTimeGrounded : accelerationTimeAirborne));
+            if (surfaceCollsions.Collisions.below)
+            {
+                // REMOVED smoothdamp from running for the time being
+                //  This give running a more arcadey feel, which I like
+                //  Also could have set accel to 0
+
+                // TODO this overwrites dodge velocity, so I'm inelegantly patching that
+                if (!inputs.dodge)
+                    state.velocity.x = inputs.run * param.speed.runSpeed;
+            }
+            else // airborne
+            {
+                // TODO currently this slows down player to floatspeed, even if running
+                float targetVelocityX = inputs.run * param.speed.floatSpeed;
+                state.velocity.x = Mathf.SmoothDamp(state.velocity.x, targetVelocityX, ref velocityXSmoothing, param.accel.accelerationTimeAirborne);
+            }
         }
 
-        // Debounce
-        if (Mathf.Abs(velocity.x) < 0.01)
+        /*
+        // Debounce - deltaTime factored in so high framerates do not cause halting
+        if (Mathf.Abs(state.velocity.x) < 0.5 * Time.deltaTime)
         {
-            velocity.x = 0;
+            state.velocity.x = 0;
             //Debug.Log("X debounce");
         }
-        if (Mathf.Abs(velocity.y) < 0.01)
+        if (Mathf.Abs(state.velocity.y) < 0.5 * Time.deltaTime)
         {
-            velocity.y = 0;
+            state.velocity.y = 0;
             //Debug.Log("Y debounce");
         }
+        */
     }
 
     private IEnumerator DoDodge()
     {
         abilities.dodge = false;
-        velocity.y += jumpVelocity / 4;
-        velocity.x += dodgeVelocity * (facing ? 1 : -1);
-        yield return new WaitForSeconds(dodgeCooldown);
+        state.velocity.y += param.dodge.dodgeVelocityY;
+        state.velocity.x = param.dodge.dodgeVelocityX * (state.facing ? 1 : -1);
+        yield return new WaitForSeconds(param.dodge.dodgeCooldown);
         abilities.dodge = true;
     }
 
@@ -254,13 +226,13 @@ public class PlayerController : ObjectController
         bool canDoubleJump = false;
         abilities.jump = false;
         //Debug.Log("Jump disabled at " + Time.time);
-        velocity.y = jumpVelocity;
+        state.velocity.y = param.jump.jumpVelocity;
         if (surfaceCollsions.Collisions.below)
         {
             //Debug.Log("Double jump allowed");
             canDoubleJump = true;
         }
-        yield return new WaitForSeconds(jumpCooldown);
+        yield return new WaitForSeconds(param.jump.jumpCooldown);
         if (canDoubleJump)
         {
             //Debug.Log("Jump enabled at " + Time.time);
@@ -270,19 +242,30 @@ public class PlayerController : ObjectController
 
     protected override void HandleCollisions()
     {
-        surfaceCollsions.DetectCollisions(ref velocity);
+        surfaceCollsions.DetectCollisions(ref state.velocity);
     }
 
     protected override void Move()
     {
-        gameObject.transform.Translate(velocity);
+        gameObject.transform.Translate(state.velocity);
+    }
+
+    [Serializable]
+    public struct PlayerControllerState
+    {
+        public Vector3 velocity;
+        // TODO I probably want to extend this to include up/down as well
+        public bool facing; //false = left, true = right
+        public bool ducking;
     }
 
     // Struct to handle inputs
-    protected struct Inputs
+    [Serializable]
+    public struct PlayerControllerInputs
     {
         public float run;
         public bool duck,
+                    up,
                     jump,
                     dodge,
                     attack,
@@ -293,11 +276,77 @@ public class PlayerController : ObjectController
         {
             run = 0;
             duck = false;
+            up = false;
             jump = false;
             dodge = false;
             attack = false;
             grab = false;
             pause = false;
+        }
+    }
+
+    [Serializable]
+    public struct PlayerControllerAbilities
+    {
+        public bool jump;
+        public bool dodge;
+        public bool duck;
+        public bool grab;
+        public void ActivateAll()
+        {
+            jump = true;
+            dodge = true;
+            duck = true;
+            grab = true;
+        }
+        public void DeactivateAll()
+        {
+            jump = false;
+            dodge = false;
+            duck = false;
+            grab = false;
+        }
+    }
+
+    [Serializable]
+    public struct PlayerControllerParameters
+    {
+        public SpeedParameters speed;
+        public JumpParameters jump;
+        public AccelerationParameters accel;
+        public DodgeParameters dodge;
+
+        [Serializable]
+        public struct SpeedParameters
+        {
+            public float runSpeed;
+            public float climbSpeed;
+            public float floatSpeed;
+            public float crawlSpeed;
+        }
+
+        [Serializable]
+        public struct JumpParameters
+        {
+            public float jumpVelocity;
+            public float jumpCooldown;
+        }
+
+        [Serializable]
+        public struct AccelerationParameters
+        {
+            public float accelerationTimeAirborne;
+            public float accelerationTimeGrounded;
+            public float accelerationTimeCrawl;
+            public float accelerationTimeSlide;
+        }
+
+        [Serializable]
+        public struct DodgeParameters
+        {
+            public float dodgeVelocityX;
+            public float dodgeVelocityY;
+            public float dodgeCooldown;
         }
     }
 }

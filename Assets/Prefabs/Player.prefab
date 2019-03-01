@@ -94,26 +94,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b046b84dfe698489193c75e8a30ac05a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GRAVITY: 10
-  speed: 0.2
-  jumpHeight: 0.05
-  timeToJumpApex: 0.4
-  jumpCooldown: 0.35
-  accelerationTimeAirborne: 0.2
-  accelerationTimeGrounded: 0.1
-  accelerationTimeCrawl: 0.1
-  accelerationTimeSlide: 0.5
-  velocity: {x: 0, y: 0, z: 0}
-  facing: 1
-  dodgeVelocity: 0.5
-  dodgeCooldown: 1
-  ducking: 0
-  crawlSpeed: 0
+  state:
+    velocity: {x: 0, y: 0, z: 0}
+    facing: 0
+    ducking: 0
   abilities:
     jump: 0
     dodge: 0
     duck: 0
-    cling: 0
+    grab: 0
+  inputs:
+    run: 0
+    duck: 0
+    up: 0
+    jump: 0
+    dodge: 0
+    attack: 0
+    grab: 0
+    pause: 0
+  param:
+    speed:
+      runSpeed: 0.2
+      climbSpeed: 0.1
+      floatSpeed: 0.1
+      crawlSpeed: 0
+    jump:
+      jumpVelocity: 0.25
+      jumpCooldown: 0.3
+    accel:
+      accelerationTimeAirborne: 0.2
+      accelerationTimeGrounded: 0.1
+      accelerationTimeCrawl: 0
+      accelerationTimeSlide: 0.5
+    dodge:
+      dodgeVelocityX: 1
+      dodgeVelocityY: 0.05
+      dodgeCooldown: 1
 --- !u!61 &1266000550960818934
 BoxCollider2D:
   m_ObjectHideFlags: 0
