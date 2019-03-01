@@ -9,30 +9,31 @@ using UnityEngine;
 public class PlayerController : ObjectController
 {
     // Player specific states/attributes
-    protected new BoxCollider2D collider;
-    protected Collision surfaceCollsions;
+    public new BoxCollider2D collider;
+    public Collision surfaceCollsions;
 
     // Helper variables
     float velocityXSmoothing;
 
     // Parameters and states
-    [SerializeField] PlayerControllerState state;
-    [SerializeField] PlayerControllerAbilities abilities;
-    [SerializeField] PlayerControllerInputs inputs;
-    [SerializeField] PlayerControllerParameters param;
+    [SerializeField] public PlayerControllerState state;
+    [SerializeField] public PlayerControllerAbilities abilities;
+    [SerializeField] public PlayerControllerInputs inputs;
+    [SerializeField] public PlayerControllerParameters param;
 
+    protected List<PlayerAbility> abilities2;
     /*
      * TODO possible design update:
      * 
      * Each ability (e.g. jump, duck, dodge)
      * has its own class inherited from PlayerAbility
      * Each PlayerAbility has checks for
-     *  - AbilityAqcuired (can the player double jump)
+     *  - AbilityAcquired (can the player double jump)
      *  - AbilityPermitted (player has only jumped once and is airborne)
      *  - AbilityInput (player has pressed the spacebar)    
      * And a PerformAbility() function that executes the ability, taking in the PlayerState struct, Inputs, Collisions, and Abilities list
      * This way we can clean up this controller function by just looping through all abilities and doing their checks    
-     */   
+     */
 
     // Start is called before the first frame update
     void Start()
@@ -41,6 +42,21 @@ public class PlayerController : ObjectController
         state.velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
+
+        initAbilities();
+    }
+
+    void initAbilities()
+    {
+        abilities2 = new List<PlayerAbility>();
+
+        PlayerAbility jump = new PlayerJump(this);
+        abilities2.Add(jump);
+
+        foreach (PlayerAbility ability in abilities2)
+        {
+            ability.Activate();
+        }
     }
 
     // Update is called once per frame
@@ -51,13 +67,18 @@ public class PlayerController : ObjectController
 
     protected override void GetState()
     {
+        foreach (PlayerAbility ability in abilities2)
+        {
+            ability.CheckPermitted();
+        }
+
         // Can jump?
-        if (!inputs.jump && abilities.jump == false && surfaceCollsions.Collisions.below)
+        /*if (!inputs.jump && abilities.jump == false && surfaceCollsions.Collisions.below)
         {
             //Debug.Break();
             //Debug.Log("Jump enabled (on ground) at " + Time.time);
             abilities.jump = true;
-        }
+        }*/
 
         // Can duck only on the ground
         abilities.duck = surfaceCollsions.Collisions.below;
@@ -68,6 +89,11 @@ public class PlayerController : ObjectController
 
     protected override void GetInput()
     {
+        foreach (PlayerAbility ability in abilities2)
+        {
+            ability.CheckInput();
+        }
+
         // All this method does is get what buttons are being pressed.
         // We don't know what to do with that without knowing state/collisions
         inputs.clear();
@@ -83,23 +109,25 @@ public class PlayerController : ObjectController
         inputs.grab     = Input.GetKey(KeyCode.K);
     }
 
-    protected override void PerformAction()
+    protected override void PerformActions()
     {
+        foreach (PlayerAbility ability in abilities2)
+        {
+            ability.Perform();
+        }
+
         if (inputs.duck && surfaceCollsions.Collisions.below && !state.ducking)
         {
             IEnumerator coroutine = DoDuck();
             StartCoroutine(coroutine);
         }
-    }
-
-    protected override void SetVelocity()
-    {
+    
         // jump
-        if (abilities.jump && (inputs.jump))
+        /*if (abilities.jump && (inputs.jump))
         {
             IEnumerator coroutine = DoJump();
             StartCoroutine(coroutine);
-        }
+        }*/
 
         // dodge
         if (abilities.dodge && (inputs.dodge))
@@ -193,7 +221,7 @@ public class PlayerController : ObjectController
         abilities.dodge = true;
     }
 
-    private IEnumerator DoJump()
+    /*private IEnumerator DoJump()
     {
         bool canDoubleJump = false;
         abilities.jump = false;
@@ -210,7 +238,7 @@ public class PlayerController : ObjectController
             //Debug.Log("Jump enabled at " + Time.time);
             abilities.jump = true;
         }
-    }
+    }*/
 
     private IEnumerator DoDuck()
     {
@@ -288,7 +316,7 @@ public class PlayerController : ObjectController
         }
         public void DeactivateAll()
         {
-            jump = false;
+            //jump = false;
             dodge = false;
             duck = false;
             grab = false;
