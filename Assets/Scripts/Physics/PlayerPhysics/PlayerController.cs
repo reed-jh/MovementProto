@@ -85,8 +85,6 @@ public class PlayerController : ObjectController
         inputs.dodge    = Input.GetKeyDown(KeyCode.L) || Input.GetKeyUp(KeyCode.L);
         //inputs.attack = Input.GetKeyDown(KeyCode.J) || Input.GetKeyUp(KeyCode.J);
         inputs.grab     = Input.GetKey(KeyCode.K);
-
-        //inputs.pause = Input.GetKey(KeyCode.P);
     }
 
     protected override void PerformAction()
@@ -114,8 +112,6 @@ public class PlayerController : ObjectController
 
     protected override void SetVelocity()
     {
-        // TODO replace with inputs.
-
         // jump
         if (abilities.jump && (inputs.jump))
         {
@@ -134,8 +130,6 @@ public class PlayerController : ObjectController
         if (inputs.grab && abilities.grab)
         {
             //Climb up
-            // TODO add smoothdamp to climbing?
-            // maybe remove smoothdamp from running
             if (inputs.up)
             {
                 state.velocity.y = param.speed.climbSpeed;
@@ -193,10 +187,6 @@ public class PlayerController : ObjectController
                 {
                     state.velocity.x = inputs.run * param.speed.runSpeed;
                 }
-                else
-                {
-                    Debug.Log("Dodging " + state.velocity.x);
-                }
             }
             else // airborne
             {
@@ -205,20 +195,6 @@ public class PlayerController : ObjectController
                 state.velocity.x = Mathf.SmoothDamp(state.velocity.x, targetVelocityX, ref velocityXSmoothing, param.accel.accelerationTimeAirborne);
             }
         }
-
-        /*
-        // Debounce - deltaTime factored in so high framerates do not cause halting
-        if (Mathf.Abs(state.velocity.x) < 0.5 * Time.deltaTime)
-        {
-            state.velocity.x = 0;
-            //Debug.Log("X debounce");
-        }
-        if (Mathf.Abs(state.velocity.y) < 0.5 * Time.deltaTime)
-        {
-            state.velocity.y = 0;
-            //Debug.Log("Y debounce");
-        }
-        */
     }
 
     private IEnumerator DoDodge()
