@@ -9,12 +9,13 @@ using UnityEngine;
 public class PlayerController : ObjectController
 {
     // Player specific states/attributes
-
     protected new BoxCollider2D collider;
     protected Collision surfaceCollsions;
 
+    // Helper variables
     float velocityXSmoothing;
 
+    // Parameters and states
     [SerializeField] PlayerControllerState state;
     [SerializeField] PlayerControllerAbilities abilities;
     [SerializeField] PlayerControllerInputs inputs;
@@ -40,11 +41,6 @@ public class PlayerController : ObjectController
         state.velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
-        // Check if init successful
-        if (collider == null || surfaceCollsions == null)
-        {
-            Debug.Log("Failed initialization: " + gameObject.name);
-        }
     }
 
     // Update is called once per frame
@@ -94,20 +90,6 @@ public class PlayerController : ObjectController
             IEnumerator coroutine = DoDuck();
             StartCoroutine(coroutine);
         }
-    }
-
-    private IEnumerator DoDuck()
-    {
-        state.ducking = true;
-        gameObject.transform.Translate(new Vector3(0, -collider.bounds.size.y / 4, 0));
-        gameObject.transform.localScale -= new Vector3(0, collider.bounds.size.y / 2, 0);
-        while (inputs.duck && abilities.duck)
-        {
-            yield return null;
-        }
-        gameObject.transform.localScale += new Vector3(0, collider.bounds.size.y, 0);
-        gameObject.transform.Translate(new Vector3(0, collider.bounds.size.y / 4, 0));
-        state.ducking = false;
     }
 
     protected override void SetVelocity()
@@ -228,6 +210,20 @@ public class PlayerController : ObjectController
             //Debug.Log("Jump enabled at " + Time.time);
             abilities.jump = true;
         }
+    }
+
+    private IEnumerator DoDuck()
+    {
+        state.ducking = true;
+        gameObject.transform.Translate(new Vector3(0, -collider.bounds.size.y / 4, 0));
+        gameObject.transform.localScale -= new Vector3(0, collider.bounds.size.y / 2, 0);
+        while (inputs.duck && abilities.duck)
+        {
+            yield return null;
+        }
+        gameObject.transform.localScale += new Vector3(0, collider.bounds.size.y, 0);
+        gameObject.transform.Translate(new Vector3(0, collider.bounds.size.y / 4, 0));
+        state.ducking = false;
     }
 
     protected override void HandleCollisions()
