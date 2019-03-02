@@ -5,10 +5,10 @@ using UnityEngine;
 public abstract class PlayerAbility
 {
     public bool doing;          // Ability is in use at this moment
+    public bool input;          // Player is attempting to use ability
     protected bool coroutineUsed; // Does the ability make use of a coroutine
     protected bool active;      // Player has obtained this ability
     protected bool permitted;   // Ability is permitted at this moment
-    protected bool input;       // Player is attempting to use ability
     protected bool cooling;     // Ability is currently cooling down
     protected float cooldown;   // Time between uses
 
@@ -33,7 +33,7 @@ public abstract class PlayerAbility
 
     public virtual void Perform()
     {
-        if (!active || !permitted || !input || cooling) return;
+        if (!active || !permitted || !input || doing || cooling) return;
 
         DoAbility();
         if (coroutineUsed)

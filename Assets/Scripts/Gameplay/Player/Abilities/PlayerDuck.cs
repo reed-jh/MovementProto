@@ -4,22 +4,31 @@ using UnityEngine;
 
 public class PlayerDuck : PlayerAbility
 {
-    public PlayerDuck(PlayerController p) : base(p, false)
+    public PlayerDuck(PlayerController p) : base(p, true)
     {
     }
 
     public override void CheckInput()
     {
-        //throw new System.NotImplementedException();
+        input = Input.GetKey(KeyCode.S);
     }
 
     public override void CheckPermitted()
     {
-        //throw new System.NotImplementedException();
+        permitted = player.surfaceCollsions.Collisions.below;
     }
 
-    protected override void DoAbility()
+    protected override IEnumerator DoAbilityCoroutine()
     {
-        //throw new System.NotImplementedException();
+        doing = true;
+        player.gameObject.transform.Translate(new Vector3(0, -player.collider.bounds.size.y / 4, 0));
+        player.gameObject.transform.localScale -= new Vector3(0, player.collider.bounds.size.y / 2, 0);
+        while (input && permitted)
+        {
+            yield return null;
+        }
+        player.gameObject.transform.localScale += new Vector3(0, player.collider.bounds.size.y, 0);
+        player.gameObject.transform.Translate(new Vector3(0, player.collider.bounds.size.y / 4, 0));
+        doing = false;
     }
 }
