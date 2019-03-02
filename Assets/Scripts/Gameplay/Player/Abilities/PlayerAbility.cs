@@ -4,19 +4,21 @@ using UnityEngine;
 
 public abstract class PlayerAbility
 {
+    public bool doing;          // Ability is in use at this moment
+    protected bool coroutineUsed; // Does the ability make use of a coroutine
     protected bool active;      // Player has obtained this ability
     protected bool permitted;   // Ability is permitted at this moment
     protected bool input;       // Player is attempting to use ability
-    protected bool doing;       // Ability is in use at this moment
     protected bool cooling;     // Ability is currently cooling down
     protected float cooldown;   // Time between uses
 
     // Allows access to state information
     protected PlayerController player;
 
-    protected PlayerAbility(PlayerController p)
+    protected PlayerAbility(PlayerController p, bool c)
     {
         player = p;
+        coroutineUsed = c;
     }
 
     public void Activate()
@@ -32,14 +34,26 @@ public abstract class PlayerAbility
     public virtual void Perform()
     {
         if (!active || !permitted || !input || cooling) return;
-        IEnumerator coroutine = DoAbility();
-        player.StartCoroutine(coroutine);
+
+        DoAbility();
+        if (coroutineUsed)
+        {
+            IEnumerator coroutine = DoAbilityCoroutine();
+            player.StartCoroutine(coroutine);
+        }
         Cooldown();
     }
 
     public abstract void CheckPermitted();
     public abstract void CheckInput();
-    protected abstract IEnumerator DoAbility();
+    protected virtual void DoAbility()
+    {
+
+    }
+    protected virtual IEnumerator DoAbilityCoroutine()
+    {
+        yield return null;
+    }
     protected virtual void Cooldown()
     {
         if (cooldown != 0)

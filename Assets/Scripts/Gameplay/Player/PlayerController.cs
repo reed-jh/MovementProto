@@ -17,11 +17,12 @@ public class PlayerController : ObjectController
 
     // Parameters and states
     [SerializeField] public PlayerControllerState state;
-    [SerializeField] public PlayerControllerAbilities abilities;
+    [SerializeField] public PlayerControllerAbilities abilitiesOld;
     [SerializeField] public PlayerControllerInputs inputs;
     [SerializeField] public PlayerControllerParameters param;
 
-    protected List<PlayerAbility> abilities2;
+    [SerializeField] public PlayerAbilities abilities;
+    protected List<PlayerAbility> abilitiesList;
     /*
      * TODO possible design update:
      * 
@@ -38,7 +39,7 @@ public class PlayerController : ObjectController
     // Start is called before the first frame update
     void Start()
     {
-        abilities.ActivateAll();
+        abilitiesOld.ActivateAll();
         state.velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
@@ -48,12 +49,21 @@ public class PlayerController : ObjectController
 
     void initAbilities()
     {
-        abilities2 = new List<PlayerAbility>();
+        abilitiesList = new List<PlayerAbility>();
 
-        PlayerAbility jump = new PlayerJump(this);
-        abilities2.Add(jump);
+        abilities.jump = new PlayerJump(this);
+        abilities.dodge = new PlayerDodge(this);
+        abilities.run = new PlayerRun(this);
+        abilities.climb = new PlayerClimb(this);
+        abilities.duck = new PlayerDuck(this);
 
-        foreach (PlayerAbility ability in abilities2)
+        abilitiesList.Add(abilities.dodge);
+        abilitiesList.Add(abilities.jump);
+        abilitiesList.Add(abilities.run);
+        abilitiesList.Add(abilities.climb);
+        abilitiesList.Add(abilities.duck);
+
+        foreach (PlayerAbility ability in abilitiesList)
         {
             ability.Activate();
         }
@@ -67,7 +77,7 @@ public class PlayerController : ObjectController
 
     protected override void GetState()
     {
-        foreach (PlayerAbility ability in abilities2)
+        foreach (PlayerAbility ability in abilitiesList)
         {
             ability.CheckPermitted();
         }
@@ -81,15 +91,15 @@ public class PlayerController : ObjectController
         }*/
 
         // Can duck only on the ground
-        abilities.duck = surfaceCollsions.Collisions.below;
+        abilitiesOld.duck = surfaceCollsions.Collisions.below;
 
         // Can cling only on walls
-        abilities.grab = surfaceCollsions.Collisions.right || surfaceCollsions.Collisions.left;
+        abilitiesOld.grab = surfaceCollsions.Collisions.right || surfaceCollsions.Collisions.left;
     }
 
     protected override void GetInput()
     {
-        foreach (PlayerAbility ability in abilities2)
+        foreach (PlayerAbility ability in abilitiesList)
         {
             ability.CheckInput();
         }
@@ -111,7 +121,7 @@ public class PlayerController : ObjectController
 
     protected override void PerformActions()
     {
-        foreach (PlayerAbility ability in abilities2)
+        foreach (PlayerAbility ability in abilitiesList)
         {
             ability.Perform();
         }
@@ -130,14 +140,14 @@ public class PlayerController : ObjectController
         }*/
 
         // dodge
-        if (abilities.dodge && (inputs.dodge))
+        /*if (abilities.dodge && (inputs.dodge))
         {
             IEnumerator coroutine = DoDodge();
             StartCoroutine(coroutine);
-        }
+        }*/
 
         // If grabbing wall, don't fall
-        if (inputs.grab && abilities.grab)
+        if (inputs.grab && abilitiesOld.grab)
         {
             //Climb up
             if (inputs.up)
@@ -169,10 +179,10 @@ public class PlayerController : ObjectController
                 state.velocity.y += GRAVITY * Time.deltaTime;
             }
 
-            if (inputs.run != 0)
-            {
-                state.facing = (inputs.run == 1) ? true : false;
-            }
+            //if (inputs.run != 0)
+            //{
+            //    state.facing = (inputs.run == 1) ? true : false;
+            //}
             //Debug.Log("Run: " + run);
         }
 
@@ -186,28 +196,28 @@ public class PlayerController : ObjectController
         }
         else // running
         {
-            if (surfaceCollsions.Collisions.below)
-            {
-                // REMOVED smoothdamp from running for the time being
-                //  This give running a more arcadey feel, which I like
-                //  Also could have set accel to 0
+            //if (surfaceCollsions.Collisions.below)
+            //{
+            //    // REMOVED smoothdamp from running for the time being
+            //    //  This give running a more arcadey feel, which I like
+            //    //  Also could have set accel to 0
 
-                // TODO this overwrites dodge velocity, so I'm inelegantly patching that
-                if (!state.dodging)
-                {
-                    state.velocity.x = inputs.run * param.speed.runSpeed;
-                }
-            }
-            else // airborne
-            {
-                // TODO currently this slows down player to floatspeed, even if running
-                float targetVelocityX = inputs.run * param.speed.floatSpeed;
-                state.velocity.x = Mathf.SmoothDamp(state.velocity.x, targetVelocityX, ref velocityXSmoothing, param.accel.accelerationTimeAirborne);
-            }
+            //    // TODO this overwrites dodge velocity, so I'm inelegantly patching that
+            //    if (!state.dodging)
+            //    {
+            //        state.velocity.x = inputs.run * param.speed.runSpeed;
+            //    }
+            //}
+            //else // airborne
+            //{
+            //    // TODO currently this slows down player to floatspeed, even if running
+            //    float targetVelocityX = inputs.run * param.speed.floatSpeed;
+            //    state.velocity.x = Mathf.SmoothDamp(state.velocity.x, targetVelocityX, ref velocityXSmoothing, param.accel.accelerationTimeAirborne);
+            //}
         }
     }
 
-    private IEnumerator DoDodge()
+    /*private IEnumerator DoDodge()
     {
         state.dodging = true;
         abilities.dodge = false;
@@ -219,7 +229,7 @@ public class PlayerController : ObjectController
         state.dodging = false;
         yield return new WaitForSeconds(param.dodge.dodgeCooldown);
         abilities.dodge = true;
-    }
+    }*/
 
     /*private IEnumerator DoJump()
     {
@@ -245,7 +255,7 @@ public class PlayerController : ObjectController
         state.ducking = true;
         gameObject.transform.Translate(new Vector3(0, -collider.bounds.size.y / 4, 0));
         gameObject.transform.localScale -= new Vector3(0, collider.bounds.size.y / 2, 0);
-        while (inputs.duck && abilities.duck)
+        while (inputs.duck && abilitiesOld.duck)
         {
             yield return null;
         }
@@ -321,6 +331,16 @@ public class PlayerController : ObjectController
             duck = false;
             grab = false;
         }
+    }
+
+    [Serializable]
+    public struct PlayerAbilities
+    {
+        public PlayerJump jump;
+        public PlayerRun run;
+        public PlayerDodge dodge;
+        public PlayerClimb climb;
+        public PlayerDuck duck;
     }
 
     [Serializable]

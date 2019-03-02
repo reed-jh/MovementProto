@@ -8,7 +8,7 @@ public class PlayerJump : PlayerAbility
     [SerializeField] float jumpVelocity = 0.25f;
 
     // Constructor
-    public PlayerJump(PlayerController con) : base(con)
+    public PlayerJump(PlayerController p) : base(p, true)
     {
         cooldown = .3f;
     }
@@ -24,10 +24,8 @@ public class PlayerJump : PlayerAbility
         permitted |= player.surfaceCollsions.Collisions.below;
     }
 
-    protected override IEnumerator DoAbility()
+    protected override IEnumerator DoAbilityCoroutine()
     {
-        Debug.Log("DoAbility Entered");
-
         bool canDoubleJump = false;
         permitted = false;
         player.state.velocity.y = jumpVelocity;
