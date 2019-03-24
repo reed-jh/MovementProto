@@ -18,8 +18,7 @@ public abstract class ObjectController : MonoBehaviour
         {
             GetState();
             GetInput();
-            PerformAction();
-            SetVelocity();
+            PerformActions();
             HandleCollisions();
             Move();
         }
@@ -27,8 +26,7 @@ public abstract class ObjectController : MonoBehaviour
 
     protected abstract void GetState();
     protected abstract void GetInput();
-    protected abstract void PerformAction();
-    protected abstract void SetVelocity();
+    protected abstract void PerformActions();
     protected abstract void HandleCollisions();
     protected abstract void Move();
 }
