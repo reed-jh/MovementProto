@@ -69,8 +69,11 @@ public class PlayerClimb : PlayerAbility
             }
             // If jump while clinging: leap off wall
             //if (player.abilities.jump.input)
-            if (Input.GetKeyDown(KeyCode.Space)) // todo TEMP
+            if (Input.GetKeyDown(KeyCode.Space)) // todo TEMP input check
             {
+                // TODO direction input (up, away from wall, etc) should determine which direction you jump.
+                // I'm imagining being able to leap up multiple ledges just pushing up and jumping
+
                 player.state.velocity.y = wallJumpVelocityY;
                 float jumpDirection = (player.surfaceCollsions.Collisions.left) ? 1 : -1;
                 player.state.velocity.x = wallJumpVelocityX * jumpDirection;
