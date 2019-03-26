@@ -18,6 +18,8 @@ public class Collision : MonoBehaviour
     // Then other options can just be added to the struct (like, notify collider)
     public LayerMask collisionMask;
 
+    [SerializeField] public List<Collider2D> wallCollisions;
+
     // Thinking ahead, if we have pixel art, if the skin width is small enough
     // (e.g. 1/4 of a pixel), then we won't have to worry about imprecision in the collisions,
     // because all colliding objects will render on the same pixel line
@@ -39,6 +41,8 @@ public class Collision : MonoBehaviour
         collider2d = GetComponentInParent<BoxCollider2D>();
         Collisions = new CollisionInfo();
         CalculateRaySpacing();
+
+        //wallCollisions = new HashSet<Collider2D>();
     }
 
     // A candidate movement vector is given to this function to detect Collisions
@@ -71,6 +75,8 @@ public class Collision : MonoBehaviour
     // lots of code copy right now
     void DetectHorizontalCollisions(ref Vector3 velocity)
     {
+        wallCollisions.Clear();
+
         for (int directionX = -1; directionX <= 1; directionX += 2)
         {
             float moveVelocity = (Mathf.Sign(velocity.x) == directionX) ? Mathf.Abs(velocity.x) : 0;
@@ -86,6 +92,10 @@ public class Collision : MonoBehaviour
 
                 if (hit)
                 {
+                    // Add wall collisions for later ledge-grabbing detection
+                    if (!wallCollisions.Contains(hit.collider))
+                        wallCollisions.Add(hit.collider);
+
                     if (moveVelocity > 0)
                     {
                         velocity.x = (hit.distance - skinWidth) * directionX;
@@ -177,7 +187,7 @@ public class Collision : MonoBehaviour
                     right,
                     above,
                     below;
-            
+
         public void Reset()
         {
             left = false;
