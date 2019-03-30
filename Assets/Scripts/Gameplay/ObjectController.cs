@@ -29,4 +29,9 @@ public abstract class ObjectController : MonoBehaviour
     protected abstract void PerformActions();
     protected abstract void HandleCollisions();
     protected abstract void Move();
+
+    // TODO is this best handled here? Should it be moved local to combat system
+    // Or should there be a child of ObjController like LivingController that includes
+    // combatsystem and death etc?
+    public abstract void Die();
 }

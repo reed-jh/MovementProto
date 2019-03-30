@@ -23,6 +23,8 @@ public class PlayerController : ObjectController
     [SerializeField] public PlayerAbilities abilities;
     protected List<PlayerAbility> abilitiesList;
 
+    //public PlayerCombat combat;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -53,12 +55,22 @@ public class PlayerController : ObjectController
         {
             ability.Activate();
         }
+
+        //TODO init combat
+        //combat = new PlayerCombat(this);
     }
 
     // Update is called once per frame
     protected override void Update()
     {
         base.Update();
+
+        // TODO refactor this input check
+        // thrown in here for test
+        //if (Input.GetKeyDown(KeyCode.J))
+        //{
+        //    combat.Punch();
+        //}
     }
 
     protected override void GetState()
@@ -98,6 +110,11 @@ public class PlayerController : ObjectController
     protected override void Move()
     {
         gameObject.transform.Translate(state.velocity);
+    }
+
+    public override void Die()
+    {
+        // TODO death stuff
     }
 
     [Serializable]
