@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +20,7 @@ public class Collision : MonoBehaviour
     public LayerMask collisionMask;
 
     [SerializeField] public List<Collider2D> wallCollisions;
+    [SerializeField] public List<Collider2D> platformCollisions;
 
     // Thinking ahead, if we have pixel art, if the skin width is small enough
     // (e.g. 1/4 of a pixel), then we won't have to worry about imprecision in the collisions,
@@ -35,6 +37,12 @@ public class Collision : MonoBehaviour
     protected RaycastOrigins raycastOrigins;
 
     BoxCollider2D collider2d;
+
+    struct CollisionVector
+    {
+        public bool horz;
+        public bool pos;
+    }
 
     public virtual void Start()
     {
@@ -67,12 +75,56 @@ public class Collision : MonoBehaviour
         // But how would I do that with the opposite side of the player?.....
 
         // TODO actually, I think I need to check all axes on all frames, but some just check if something is touching (within skin)
+        platformCollisions.Clear();
         DetectHorizontalCollisions(ref velocity);
         DetectVerticalCollisions(ref velocity);
     }
 
+    private void DetectMovingPlatform(PlatformController obj, CollisionVector colVec, ref Vector3 velocity, bool below = false)
+    {
+        int colVecInt = colVec.pos ? 1 : -1;
+
+        // Check push
+        if (colVec.horz && (Mathf.Sign(obj.velocity.x * colVecInt)) == -1)
+        {
+            float candidateVelocity = velocity.x + obj.velocity.x * Time.deltaTime;
+            if (colVec.pos) {
+                velocity.x = Mathf.Min(velocity.x, candidateVelocity);
+            } else {
+                velocity.x = Mathf.Max(velocity.x, candidateVelocity);
+            }
+        }
+        else if (!colVec.horz && (Mathf.Sign(obj.velocity.y * colVecInt)) == -1)
+        {
+            float candidateVelocity = velocity.y + obj.velocity.y * Time.deltaTime;
+            if (colVec.pos) {
+                velocity.y = Mathf.Min(velocity.y, candidateVelocity);
+
+            } else {
+                // Shitty workaround for a bug:
+                // Y velocity doesn't get reset to 0 each frame, but gets reduced by gravity,
+                // so instead of using the velocity attribute (which should maybe be paired with am instantaneous delta attr)
+                // I'm going to just push the player up (if candidate velocity is chosen)
+                //velocity.y = Mathf.Max(velocity.y, candidateVelocity);
+                if (candidateVelocity > velocity.y) {
+                    transform.Translate(new Vector2(0,candidateVelocity));
+                }
+
+            }
+        }
+
+        // Check carry
+        if (below && obj.velocity.x != 0)
+        { 
+            velocity.x += obj.velocity.x * Time.deltaTime;
+        }
+
+        // TODO, what if this velocity causes a collision? Right now that's not getting handled
+    }
+
     // Can Horz/Vert code be merged into a single function, or at least part of it
     // lots of code copy right now
+    // This would make the DetectMovingPlatform calls better
     void DetectHorizontalCollisions(ref Vector3 velocity)
     {
         wallCollisions.Clear();
@@ -96,7 +148,8 @@ public class Collision : MonoBehaviour
                     if (!wallCollisions.Contains(hit.collider))
                         wallCollisions.Add(hit.collider);
 
-                    if (moveVelocity > 0)
+                    // Inelegant, we don't want to update velocity for already collided platforms
+                    if (moveVelocity > 0 && !platformCollisions.Contains(hit.collider))
                     {
                         velocity.x = (hit.distance - skinWidth) * directionX;
                         rayLength = hit.distance;
@@ -105,6 +158,17 @@ public class Collision : MonoBehaviour
                     Collisions.left  |= directionX == -1;
                     Collisions.right |= directionX == 1;
 
+                    CollisionVector colVec;
+                    colVec.horz = true;
+                    colVec.pos = Collisions.right;
+
+                    // If collider is a movable object
+                    // Might be better to check tags than component
+                    if (hit.collider.gameObject.GetComponent<PlatformController>() != null && !platformCollisions.Contains(hit.collider))
+                    {
+                        platformCollisions.Add(hit.collider);
+                        DetectMovingPlatform(hit.collider.gameObject.GetComponent<PlatformController>(), colVec, ref velocity);
+                    }
                 }
             }
         }
@@ -128,7 +192,9 @@ public class Collision : MonoBehaviour
 
                 if (hit)
                 {
-                    if (moveVelocity > 0)
+                    Debug.Log("hit distance " + hit.distance);
+
+                    if (moveVelocity > 0 && !platformCollisions.Contains(hit.collider))
                     {
                         velocity.y = (hit.distance - skinWidth) * directionY;
                         rayLength = hit.distance;
@@ -136,6 +202,18 @@ public class Collision : MonoBehaviour
 
                     Collisions.below |= directionY == -1;
                     Collisions.above |= directionY == 1;
+
+                    CollisionVector colVec;
+                    colVec.horz = false;
+                    colVec.pos = Collisions.above;
+
+                    // If collider is a movable object
+                    // Might be better to check tags than component
+                    if (hit.collider.gameObject.GetComponent<PlatformController>() != null && !platformCollisions.Contains(hit.collider))
+                    {
+                        platformCollisions.Add(hit.collider);
+                        DetectMovingPlatform(hit.collider.gameObject.GetComponent<PlatformController>(), colVec, ref velocity, Collisions.below);
+                    }
                 }
             }
         }

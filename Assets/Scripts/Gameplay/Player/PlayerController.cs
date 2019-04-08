@@ -56,9 +56,9 @@ public class PlayerController : ObjectController
     }
 
     // Update is called once per frame
-    protected override void Update()
+    protected override void FixedUpdate()
     {
-        base.Update();
+        base.FixedUpdate();
     }
 
     protected override void GetState()
@@ -84,7 +84,7 @@ public class PlayerController : ObjectController
             ability.Perform();
         }
 
-        if (!abilities.dodge.doing && !abilities.climb.doing) // will not fall while dodging
+        if (!abilities.dodge.doing && !abilities.climb.doing && !surfaceCollsions.Collisions.below) // will not fall while dodging
         {
             state.velocity.y += GRAVITY * Time.deltaTime;
         }
@@ -97,12 +97,14 @@ public class PlayerController : ObjectController
 
     protected override void Move()
     {
+        Debug.Log("FINAL Y VEL " + state.velocity.y);
         gameObject.transform.Translate(state.velocity);
     }
 
     [Serializable]
     public struct PlayerControllerState
     {
+        // TODO duplicated in objcontroller
         public Vector3 velocity;
         // TODO I probably want to extend this to include up/down as well
         public bool facing; //false = left, true = right

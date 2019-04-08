@@ -8,9 +8,12 @@ public abstract class ObjectController : MonoBehaviour
     protected const float GRAVITY = -0.5f;
     public static bool PAUSED = false;
 
+    // V3 or V2?
+    public Vector3 velocity;
+
     // Classes implementing ObjectController can call base.Update()
     // to use this per-frame update sequence
-    protected virtual void Update()
+    protected virtual void FixedUpdate()
     {
         // If all objects are required to use this base update method,
         // then a pause will be univeral for all moving game objects
