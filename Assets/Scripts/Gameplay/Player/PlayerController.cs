@@ -26,7 +26,8 @@ public class PlayerController : ObjectController
     // Start is called before the first frame update
     void Start()
     {
-        state.velocity = new Vector3();
+        //state.velocity = new Vector3();
+        velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
 
@@ -56,9 +57,9 @@ public class PlayerController : ObjectController
     }
 
     // Update is called once per frame
-    protected override void Update()
+    protected override void FixedUpdate()
     {
-        base.Update();
+        base.FixedUpdate();
     }
 
     protected override void GetState()
@@ -84,26 +85,31 @@ public class PlayerController : ObjectController
             ability.Perform();
         }
 
-        if (!abilities.dodge.doing && !abilities.climb.doing) // will not fall while dodging
+        if (!abilities.dodge.doing && !abilities.climb.doing && !surfaceCollsions.Collisions.below) // will not fall while dodging
         {
-            state.velocity.y += GRAVITY * Time.deltaTime;
+            //state.velocity.y += GRAVITY * Time.deltaTime;
+            velocity.y += GRAVITY * Time.deltaTime;
         }
     }
 
     protected override void HandleCollisions()
     {
-        surfaceCollsions.DetectCollisions(ref state.velocity);
+        delta += velocity;
+        //surfaceCollsions.DetectCollisions(ref state.velocity);
+        surfaceCollsions.DetectCollisions(ref delta, ref velocity);
     }
 
     protected override void Move()
     {
-        gameObject.transform.Translate(state.velocity);
+        gameObject.transform.Translate(delta);
+        delta = Vector3.zero;
     }
 
     [Serializable]
     public struct PlayerControllerState
     {
-        public Vector3 velocity;
+        // TODO duplicated in objcontroller
+        //public Vector3 velocity;
         // TODO I probably want to extend this to include up/down as well
         public bool facing; //false = left, true = right
     }

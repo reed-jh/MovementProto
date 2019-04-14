@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +20,7 @@ public class Collision : MonoBehaviour
     public LayerMask collisionMask;
 
     [SerializeField] public List<Collider2D> wallCollisions;
+    [SerializeField] public List<Collider2D> platformCollisions;
 
     // Thinking ahead, if we have pixel art, if the skin width is small enough
     // (e.g. 1/4 of a pixel), then we won't have to worry about imprecision in the collisions,
@@ -35,6 +37,12 @@ public class Collision : MonoBehaviour
     protected RaycastOrigins raycastOrigins;
 
     BoxCollider2D collider2d;
+
+    struct CollisionVector
+    {
+        public bool horz;
+        public bool pos;
+    }
 
     public virtual void Start()
     {
@@ -56,7 +64,7 @@ public class Collision : MonoBehaviour
 
         // Also moving platforms? Getting pushed by objects?
 
-    public void DetectCollisions(ref Vector3 velocity)
+    public void DetectCollisions(ref Vector3 delta, ref Vector3 velocity)
     {
         Collisions.Reset();
         UpdateRaycastOrigins();
@@ -67,19 +75,64 @@ public class Collision : MonoBehaviour
         // But how would I do that with the opposite side of the player?.....
 
         // TODO actually, I think I need to check all axes on all frames, but some just check if something is touching (within skin)
-        DetectHorizontalCollisions(ref velocity);
-        DetectVerticalCollisions(ref velocity);
+        platformCollisions.Clear();
+        DetectHorizontalCollisions(ref delta, ref velocity);
+        DetectVerticalCollisions(ref delta, ref velocity);
+    }
+
+    private void DetectMovingPlatform(PlatformController obj, CollisionVector colVec, ref Vector3 delta, ref Vector3 velocity, bool below = false)
+    {
+        int colVecInt = colVec.pos ? 1 : -1;
+
+        // Check push
+        if (colVec.horz && (Mathf.Sign(obj.velocity.x * colVecInt)) == -1)
+        {
+            float candidateVelocity = delta.x + obj.velocity.x * Time.deltaTime;
+            if (colVec.pos) {
+                delta.x = Mathf.Min(delta.x, candidateVelocity);
+            } else {
+                delta.x = Mathf.Max(delta.x, candidateVelocity);
+            }
+        }
+        else if (!colVec.horz && (Mathf.Sign(obj.velocity.y * colVecInt)) == -1)
+        {
+            float candidateVelocity = delta.y + obj.velocity.y * Time.deltaTime;
+            if (colVec.pos) {
+                delta.y = Mathf.Min(delta.y, candidateVelocity);
+            } else {
+                // Shitty workaround for a bug:
+                // Y velocity doesn't get reset to 0 each frame, but gets reduced by gravity,
+                // so instead of using the velocity attribute (which should maybe be paired with am instantaneous delta attr)
+                // I'm going to just push the player up (if candidate velocity is chosen)
+                //velocity.y = Mathf.Max(velocity.y, candidateVelocity);
+                if (candidateVelocity > delta.y) {
+                    //transform.Translate(new Vector2(0,candidateVelocity));
+                    delta.y = candidateVelocity;
+                }
+
+            }
+        }
+
+        // Check carry
+        if (below && obj.velocity.x != 0)
+        { 
+            // probably should be obj.delta
+            delta.x += obj.velocity.x * Time.deltaTime;
+        }
+
+        // TODO, what if this velocity causes a collision? Right now that's not getting handled
     }
 
     // Can Horz/Vert code be merged into a single function, or at least part of it
     // lots of code copy right now
-    void DetectHorizontalCollisions(ref Vector3 velocity)
+    // This would make the DetectMovingPlatform calls better
+    void DetectHorizontalCollisions(ref Vector3 delta, ref Vector3 velocity)
     {
         wallCollisions.Clear();
 
         for (int directionX = -1; directionX <= 1; directionX += 2)
         {
-            float moveVelocity = (Mathf.Sign(velocity.x) == directionX) ? Mathf.Abs(velocity.x) : 0;
+            float moveVelocity = (Mathf.Sign(delta.x) == directionX) ? Mathf.Abs(delta.x) : 0;
             float rayLength = moveVelocity + skinWidth * 2;
             for (int i = 0; i < horizontalRayCount; i++)
             {
@@ -96,31 +149,43 @@ public class Collision : MonoBehaviour
                     if (!wallCollisions.Contains(hit.collider))
                         wallCollisions.Add(hit.collider);
 
-                    if (moveVelocity > 0)
+                    // Inelegant, we don't want to update velocity for already collided platforms
+                    if (moveVelocity > 0 && !platformCollisions.Contains(hit.collider))
                     {
-                        velocity.x = (hit.distance - skinWidth) * directionX;
+                        delta.x = (hit.distance - skinWidth) * directionX;
                         rayLength = hit.distance;
                     }
 
                     Collisions.left  |= directionX == -1;
                     Collisions.right |= directionX == 1;
 
+                    CollisionVector colVec;
+                    colVec.horz = true;
+                    colVec.pos = Collisions.right;
+
+                    // If collider is a movable object
+                    // Might be better to check tags than component
+                    if (hit.collider.gameObject.GetComponent<PlatformController>() != null && !platformCollisions.Contains(hit.collider))
+                    {
+                        platformCollisions.Add(hit.collider);
+                        DetectMovingPlatform(hit.collider.gameObject.GetComponent<PlatformController>(), colVec, ref delta, ref velocity);
+                    }
                 }
             }
         }
     }
 
-    void DetectVerticalCollisions(ref Vector3 velocity)
+    void DetectVerticalCollisions(ref Vector3 delta, ref Vector3 velocity)
     {
         for (int directionY = -1; directionY <= 1; directionY += 2)
         {
-            float moveVelocity = (Mathf.Sign(velocity.y) == directionY) ? Mathf.Abs(velocity.y) : 0;
+            float moveVelocity = (Mathf.Sign(delta.y) == directionY) ? Mathf.Abs(delta.y) : 0;
             float rayLength = moveVelocity + skinWidth * 2;
 
             for (int i = 0; i < verticalRayCount; i++)
             {
                 Vector2 rayOrigin = (directionY == -1) ? raycastOrigins.bottomLeft : raycastOrigins.topLeft;
-                rayOrigin += Vector2.right * (verticalRaySpacing * i + velocity.x);
+                rayOrigin += Vector2.right * (verticalRaySpacing * i + delta.x);
 
                 RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up * directionY, rayLength, collisionMask);
 
@@ -128,14 +193,30 @@ public class Collision : MonoBehaviour
 
                 if (hit)
                 {
-                    if (moveVelocity > 0)
+                    if (moveVelocity > 0 && !platformCollisions.Contains(hit.collider))
                     {
-                        velocity.y = (hit.distance - skinWidth) * directionY;
+                        delta.y = (hit.distance - skinWidth) * directionY;
                         rayLength = hit.distance;
                     }
 
                     Collisions.below |= directionY == -1;
                     Collisions.above |= directionY == 1;
+
+                    if (Collisions.above) {
+                        velocity.y = Mathf.Min(0, velocity.y);
+                    }
+
+                    CollisionVector colVec;
+                    colVec.horz = false;
+                    colVec.pos = Collisions.above;
+
+                    // If collider is a movable object
+                    // Might be better to check tags than component
+                    if (hit.collider.gameObject.GetComponent<PlatformController>() != null && !platformCollisions.Contains(hit.collider))
+                    {
+                        platformCollisions.Add(hit.collider);
+                        DetectMovingPlatform(hit.collider.gameObject.GetComponent<PlatformController>(), colVec, ref delta, ref velocity, Collisions.below);
+                    }
                 }
             }
         }

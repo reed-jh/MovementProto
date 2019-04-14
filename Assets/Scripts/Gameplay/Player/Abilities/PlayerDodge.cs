@@ -30,7 +30,8 @@ public class PlayerDodge : PlayerAbility
         doing = true;
         for (float elapsed = 0f; elapsed < dodgeTime; elapsed += Time.deltaTime)
         {
-            player.state.velocity.x = dodgeDistance * (player.state.facing ? 1 : -1) * Time.deltaTime / dodgeTime;
+            // player.state.velocity.x = dodgeDistance * (player.state.facing ? 1 : -1) * Time.deltaTime / dodgeTime;
+            player.delta.x = dodgeDistance * (player.state.facing ? 1 : -1) * Time.deltaTime / dodgeTime;
             yield return null;
         }
         doing = false;

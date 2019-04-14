@@ -55,16 +55,19 @@ public class PlayerClimb : PlayerAbility
             {
                 if (upOrDown)
                 {
-                    player.state.velocity.y = climbSpeed;
+                    // player.state.velocity.y = climbSpeed;
+                    player.velocity.y = climbSpeed;
                 }
                 else
                 {
-                    player.state.velocity.y = -climbSpeed;
+                    // player.state.velocity.y = -climbSpeed;
+                    player.velocity.y = -climbSpeed;
                 }
             }
             else
             {
-                player.state.velocity.y = 0;
+                // player.state.velocity.y = 0;
+                player.velocity.y = 0;
                 player.transform.Translate(new Vector3(0, dif, 0));
             }
             // If jump while clinging: leap off wall
@@ -74,9 +77,13 @@ public class PlayerClimb : PlayerAbility
                 // TODO direction input (up, away from wall, etc) should determine which direction you jump.
                 // I'm imagining being able to leap up multiple ledges just pushing up and jumping
 
-                player.state.velocity.y = wallJumpVelocityY;
+                // player.state.velocity.y = wallJumpVelocityY;
+                // float jumpDirection = (player.surfaceCollsions.Collisions.left) ? 1 : -1;
+                // player.state.velocity.x = wallJumpVelocityX * jumpDirection;
+
+                player.velocity.y = wallJumpVelocityY;
                 float jumpDirection = (player.surfaceCollsions.Collisions.left) ? 1 : -1;
-                player.state.velocity.x = wallJumpVelocityX * jumpDirection;
+                player.velocity.x = wallJumpVelocityX * jumpDirection;
             }
             yield return null;
         }
