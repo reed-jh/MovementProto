@@ -26,7 +26,8 @@ public class PlayerController : ObjectController
     // Start is called before the first frame update
     void Start()
     {
-        state.velocity = new Vector3();
+        //state.velocity = new Vector3();
+        velocity = new Vector3();
         collider = GetComponent<BoxCollider2D>();
         surfaceCollsions = GetComponent<Collision>();
 
@@ -86,26 +87,29 @@ public class PlayerController : ObjectController
 
         if (!abilities.dodge.doing && !abilities.climb.doing && !surfaceCollsions.Collisions.below) // will not fall while dodging
         {
-            state.velocity.y += GRAVITY * Time.deltaTime;
+            //state.velocity.y += GRAVITY * Time.deltaTime;
+            velocity.y += GRAVITY * Time.deltaTime;
         }
     }
 
     protected override void HandleCollisions()
     {
-        surfaceCollsions.DetectCollisions(ref state.velocity);
+        delta += velocity;
+        //surfaceCollsions.DetectCollisions(ref state.velocity);
+        surfaceCollsions.DetectCollisions(ref delta, ref velocity);
     }
 
     protected override void Move()
     {
-        Debug.Log("FINAL Y VEL " + state.velocity.y);
-        gameObject.transform.Translate(state.velocity);
+        gameObject.transform.Translate(delta);
+        delta = Vector3.zero;
     }
 
     [Serializable]
     public struct PlayerControllerState
     {
         // TODO duplicated in objcontroller
-        public Vector3 velocity;
+        //public Vector3 velocity;
         // TODO I probably want to extend this to include up/down as well
         public bool facing; //false = left, true = right
     }

@@ -28,7 +28,8 @@ public class PlayerJump : PlayerAbility
     {
         bool canDoubleJump = false;
         permitted = false;
-        player.state.velocity.y = jumpVelocity;
+        // player.state.velocity.y = jumpVelocity;
+        player.velocity.y = jumpVelocity;
         canDoubleJump |= player.surfaceCollsions.Collisions.below;
         yield return new WaitForSeconds(cooldown);
         permitted |= canDoubleJump;

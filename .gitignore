@@ -13,6 +13,7 @@
 
 # Visual Studio cache directory
 .vs/
+.vscode/
 
 # Gradle cache directory
 .gradle/
@@ -51,3 +52,6 @@ sysinfo.txt
 crashlytics-build.properties
 
 .DS_Store
+manifest.json
+ProjectVersion.txt
+.gitignore

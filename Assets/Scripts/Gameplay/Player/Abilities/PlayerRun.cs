@@ -8,7 +8,7 @@ public class PlayerRun : PlayerAbility
     [SerializeField] float runSpeed = 0.2f;
     [SerializeField] float floatSpeed = 0.1f;
     [SerializeField] float accelerationTimeAirborne = 0.2f;
-    [SerializeField] float accelerationTimeSlide = 0.5f;
+    [SerializeField] float accelerationTimeSlide = 0.8f;
 
     float direction;
     float smoothing;
@@ -44,11 +44,12 @@ public class PlayerRun : PlayerAbility
             if (player.abilities.duck.doing)
             {
                 // If ducking, slide to a halt
-                player.state.velocity.x = Mathf.SmoothDamp(player.state.velocity.x, 0, ref smoothing, accelerationTimeSlide);
+                player.velocity.x = Mathf.SmoothDamp(player.velocity.x, 0, ref smoothing, accelerationTimeSlide);
             }
             else if (!player.abilities.dodge.doing)
             {
-                player.state.velocity.x = direction * runSpeed;
+                // player.state.velocity.x = direction * runSpeed;
+                player.velocity.x = direction * runSpeed;
             }
         }
         else if (!player.abilities.climb.doing)// airborne
@@ -56,7 +57,7 @@ public class PlayerRun : PlayerAbility
             // TODO currently this slows down player to floatspeed, even if going fast (like jumping)
             // Add checks to see if current velocity exceeds floatspeed. If so, don't smoothdamp
             float targetVelocityX = direction * floatSpeed;
-            player.state.velocity.x = Mathf.SmoothDamp(player.state.velocity.x, targetVelocityX, ref smoothing, accelerationTimeAirborne);
+            player.velocity.x = Mathf.SmoothDamp(player.velocity.x, targetVelocityX, ref smoothing, accelerationTimeAirborne);
         }
     }
 }
